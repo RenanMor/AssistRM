@@ -12,7 +12,7 @@ function getClient() {
   return client;
 }
 
-const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL;
 
 function trimText(text, max = 24000) {
   if (text.length <= max) return text;
@@ -28,13 +28,13 @@ Nome do arquivo candidato: "${candidateName}"
 
 Trecho inicial do conteudo do documento:
 """
-${trimText(pdfText, 6000)}
+${trimText(pdfText, 3000)}
 """
 
 Responda APENAS com um JSON valido, sem texto extra, no formato:
 {"match": true|false, "nome_no_documento": "nome completo encontrado ou vazio", "motivo": "explicacao curta"}
 
-Considere match=true se o nome solicitado corresponde de forma clara ao cliente do documento, mesmo com pequenas variacoes de grafia ou abreviacoes.`;
+Considere match=true se o nome solicitado corresponde de forma clara ao cliente do documento, considere "de" como junção de nome, mesmo com pequenas variacoes de grafia ou abreviacoes.`;
 
   const res = await groq.chat.completions.create({
     model: MODEL,
@@ -60,7 +60,7 @@ export async function answerAboutClient(question, clientName, pdfText, history =
   const systemPrompt = `Voce e um assistente que responde perguntas sobre orcamentos e relatorios de clientes em portugues do Brasil.
 O cliente atualmente selecionado e: "${clientName}".
 Responda com base EXCLUSIVAMENTE no conteudo do documento abaixo. Se a informacao pedida nao estiver no documento, diga claramente que nao encontrou a informacao no documento.
-Seja direto e objetivo. Quando informar valores, mostre o valor exato como aparece no documento. Sem comentarios extras.
+Seja direto e objetivo. Quando informar valores, mostre o valor exato como aparece no documento, se tiver opções mostre o valor de todas opções exemplo "basico" ao "master".
 
 CONTEUDO DO DOCUMENTO DO CLIENTE:
 """
