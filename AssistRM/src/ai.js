@@ -1,5 +1,4 @@
 import Groq from "groq-sdk";
-import fetch from "node-fetch";
 
 let client = null;
 
@@ -8,16 +7,12 @@ function getClient() {
     if (!process.env.GROQ_API_KEY) {
       throw new Error("GROQ_API_KEY nao configurada.");
     }
-    client = new Groq({ 
-      apiKey: process.env.GROQ_API_KEY,
-      fetch: fetch,
-      maxRetries: 3 
-    });
+    client = new Groq({ apiKey: process.env.GROQ_API_KEY });
   }
   return client;
 }
 
-const MODEL = process.env.GROQ_MODEL;
+const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 function trimText(text, max = 24000) {
   if (text.length <= max) return text;
@@ -39,7 +34,7 @@ ${trimText(pdfText, 6000)}
 Responda APENAS com um JSON valido, sem texto extra, no formato:
 {"match": true|false, "nome_no_documento": "nome completo encontrado ou vazio", "motivo": "explicacao curta"}
 
-Considere match=true se o nome solicitado corresponde de forma clara ao cliente do documento, mesmo com pequenas variações de grafia ou abreviações.`;
+Considere match=true se o nome solicitado corresponde de forma clara ao cliente do documento, mesmo com pequenas variacoes de grafia ou abreviacoes.`;
 
   const res = await groq.chat.completions.create({
     model: MODEL,
@@ -62,19 +57,12 @@ Considere match=true se o nome solicitado corresponde de forma clara ao cliente 
 export async function answerAboutClient(question, clientName, pdfText, history = []) {
   const groq = getClient();
 
-  // --- COMPORTAMENTO DA IA PERSONALIZADO AQUI ---
-  // Adicionadas regras restritivas e proibitivas para eliminar comentários extras.
-  const systemPrompt = `Você é um extrator de dados cirúrgico e extremamente direto que responde perguntas sobre orçamentos e relatórios em português do Brasil.
-O cliente atualmente selecionado é: "${clientName}".
+  const systemPrompt = `Voce e um assistente que responde perguntas sobre orcamentos e relatorios de clientes em portugues do Brasil.
+O cliente atualmente selecionado e: "${clientName}".
+Responda com base EXCLUSIVAMENTE no conteudo do documento abaixo. Se a informacao pedida nao estiver no documento, diga claramente que nao encontrou a informacao no documento.
+Seja direto e objetivo. Quando informar valores, mostre o valor exato como aparece no documento. Sem comentarios extras.
 
-REGRAS CRÍTICAS DE RESPOSTA:
-1. Responda com base EXCLUSIVAMENTE no conteúdo do documento abaixo. Se a informação pedida não estiver explícita, responda apenas: "Informação não encontrada no documento."
-2. Vá direto ao ponto. Forneça APENAS a informação crua que foi solicitada.
-3. PROIBIDO qualquer tipo de saudação, introdução ou comentário extra (Exemplos proibidos: "De acordo com o documento...", "O valor encontrado foi...", "Aqui está o que você pediu:", "Espero ter ajudado").
-4. Se o usuário perguntar um valor, responda APENAS o valor (Exemplo: "R$ 1.500,00"). Se perguntar uma data, responda APENAS a data.
-5. Quando informar valores, mostre o valor exato como aparece no documento.
-
-CONTEÚDO DO DOCUMENTO DO CLIENTE:
+CONTEUDO DO DOCUMENTO DO CLIENTE:
 """
 ${trimText(pdfText)}
 """`;
@@ -89,11 +77,11 @@ ${trimText(pdfText)}
 
   const res = await groq.chat.completions.create({
     model: MODEL,
-    temperature: 0, // Alterado para 0 para tornar a resposta o mais determinística e fria possível
+    temperature: 0.1,
     messages,
   });
 
-  return res.choices?.[0]?.message?.content?.trim() || "Não foi possível gerar uma resposta.";
+  return res.choices?.[0]?.message?.content?.trim() || "Nao foi possivel gerar uma resposta.";
 }
 
 export async function isNewClientRequest(message) {
