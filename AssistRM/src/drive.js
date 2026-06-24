@@ -36,8 +36,8 @@ console.log(
   "PRIVATE KEY START:",
   credentials.private_key?.substring(0, 3000)
 );
-    credentials.private_key =
-  credentials.private_key.replace(/\\n/g, "\n");
+
+    console.log(Object.keys(credentials));
     
     const auth = new google.auth.GoogleAuth({
       credentials,
