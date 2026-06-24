@@ -1,43 +1,21 @@
 import { google } from "googleapis";
 
-function buildAuth() {
-  const scopes = ["https://www.googleapis.com/auth/drive.readonly"];
-
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON.trim();
-    
-    if (raw.startsWith("'") || raw.startsWith('"')) {
-      raw = raw.slice(1, -1);
-    }
-    
-    try {
-      const credentials = JSON.parse(raw);
-      if (credentials.private_key && typeof credentials.private_key === "string") {
-        credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
-      }
-      return new google.auth.GoogleAuth({ credentials, scopes });
-    } catch (err) {
-      throw new Error(`Erro ao fazer parse do JSON da Service Account: ${err.message}`);
-    }
-  }
-
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    return new google.auth.GoogleAuth({
-      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      scopes,
-    });
-  }
-
-  throw new Error(
-    "Credenciais do Google nao configuradas. Defina GOOGLE_SERVICE_ACCOUNT_JSON ou GOOGLE_APPLICATION_CREDENTIALS."
-  );
-}
-
 let driveClient = null;
 
 function getDrive() {
   if (!driveClient) {
-    const auth = buildAuth();
+    const credenciaisGoogle = process.env.GOOGLE_CREDENTIALS;
+    const pastaId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+    if (!credenciaisGoogle || !pastaId) {
+      throw new Error("GOOGLE_CREDENTIALS ou GOOGLE_DRIVE_FOLDER_ID nao configurados.");
+    }
+
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(credenciaisGoogle),
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+    });
+
     driveClient = google.drive({ version: "v3", auth });
   }
   return driveClient;

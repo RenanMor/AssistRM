@@ -12,5 +12,5 @@ services:
         value: llama-3.3-70b-versatile
       - key: GOOGLE_DRIVE_FOLDER_ID
         value: 1ULRe_-U-3bZ6vtP-QRJdjUd27AEdFkBx
-      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+      - key: GOOGLE_CREDENTIALS
         sync: false

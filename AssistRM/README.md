@@ -36,7 +36,7 @@ Google Drive API -> download do PDF -> pdf-parse -> texto -> IA (Groq)
 | `GROQ_API_KEY` | Chave da API da Groq |
 | `GROQ_MODEL` | Modelo da Groq (padrao: `llama-3.3-70b-versatile`) |
 | `GOOGLE_DRIVE_FOLDER_ID` | ID da pasta do Google Drive com os PDFs |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Conteudo do JSON da conta de servico |
+| `GOOGLE_CREDENTIALS` | Conteudo do JSON da conta de servico |
 | `PORT` | Porta do servidor (o Render define automaticamente) |
 
 ## Rodar localmente
@@ -57,7 +57,7 @@ Acesse http://localhost:3000
 3. O arquivo `render.yaml` ja define build e start
 4. Em **Environment**, adicione as variaveis:
    - `GROQ_API_KEY`
-   - `GOOGLE_SERVICE_ACCOUNT_JSON` (cole o JSON inteiro)
+   - `GOOGLE_CREDENTIALS` (cole o JSON inteiro)
    - `GOOGLE_DRIVE_FOLDER_ID` (ja vem preenchido)
    - `GROQ_MODEL` (opcional)
 5. Faca o deploy
