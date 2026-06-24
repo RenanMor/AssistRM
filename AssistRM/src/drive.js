@@ -34,29 +34,17 @@ function getDrive() {
 console.log("PROJECT ID:", credentials.project_id);
 console.log(
   "PRIVATE KEY START:",
-  credentials.private_key?.substring(0, 40)
+  credentials.private_key?.substring(0, 3000)
 );
 
-    { const auth = new google.auth.GoogleAuth({
-  credentials,
-  scopes: ["https://www.googleapis.com/auth/drive.readonly"],
-});
-
-try {
-  const client = await auth.getClient();
-
-  const token = await client.getAccessToken();
-
-  console.log("TOKEN OK");
-  console.log(token);
-} catch (e) {
-  console.error("AUTH ERROR:");
-  console.error(e);
-  throw e;
-}}
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+    });
 
     driveClient = google.drive({ version: "v3", auth });
   }
+
   return driveClient;
 }
 
