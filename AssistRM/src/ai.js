@@ -19,7 +19,7 @@ function getClient() {
 
 const MODEL = process.env.GROQ_MODEL;
 
-function trimText(text, max = 8000) {
+function trimText(text, max = 24000) {
   if (text.length <= max) return text;
   return text.slice(0, max);
 }
