@@ -165,6 +165,12 @@ app.post("/api/select", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+console.log(
+  JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON).client_email
+);
+console.log(
+  JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON).private_key?.slice(0, 50)
+);
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
