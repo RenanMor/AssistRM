@@ -37,7 +37,7 @@ console.log(
   credentials.private_key?.substring(0, 40)
 );
 
-    const auth = new google.auth.GoogleAuth({
+    { const auth = new google.auth.GoogleAuth({
   credentials,
   scopes: ["https://www.googleapis.com/auth/drive.readonly"],
 });
@@ -53,7 +53,7 @@ try {
   console.error("AUTH ERROR:");
   console.error(e);
   throw e;
-}
+}}
 
     driveClient = google.drive({ version: "v3", auth });
   }
