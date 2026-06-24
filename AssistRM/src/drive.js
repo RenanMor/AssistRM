@@ -38,9 +38,22 @@ console.log(
 );
 
     const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ["https://www.googleapis.com/auth/drive.readonly"],
-    });
+  credentials,
+  scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+});
+
+try {
+  const client = await auth.getClient();
+
+  const token = await client.getAccessToken();
+
+  console.log("TOKEN OK");
+  console.log(token);
+} catch (e) {
+  console.error("AUTH ERROR:");
+  console.error(e);
+  throw e;
+}
 
     driveClient = google.drive({ version: "v3", auth });
   }
