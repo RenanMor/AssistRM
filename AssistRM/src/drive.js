@@ -30,14 +30,19 @@ function getDrive() {
     } catch (err) {
       throw new Error(`Erro ao fazer parse das credenciais: ${err.message}`);
     }
-    console.log("CLIENT EMAIL:", credentials.client_email);
-console.log("PROJECT ID:", credentials.project_id);
-console.log(
-  "PRIVATE KEY START:",
-  credentials.private_key?.substring(0, 3000)
-);
 
-    console.log(Object.keys(credentials));
+    // --- CORREÇÃO PARA O ERRO "Premature close" NO RENDER ---
+    // O Render costuma escapar as quebras de linha da private_key ao ler variáveis
+    // ou Secret Files, transformando enter em texto literal "\n". 
+    // Essa linha garante que a formatação original do Google seja restaurada.
+    if (credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    }
+    // --------------------------------------------------------
+
+    console.log("CLIENT EMAIL:", credentials.client_email);
+    console.log("PROJECT ID:", credentials.project_id);
+    console.log("PRIVATE KEY OK:", credentials.private_key ? "Chave carregada e formatada com sucesso" : "Chave ausente");
     
     const auth = new google.auth.GoogleAuth({
       credentials,
