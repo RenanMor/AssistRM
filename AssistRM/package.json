@@ -1,0 +1,22 @@
+{
+  "name": "assistente-chat-pdf",
+  "version": "1.0.0",
+  "description": "Assistente de chat que le PDFs do Google Drive e responde via Groq",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1",
+    "groq-sdk": "^0.7.0",
+    "pdf-parse": "1.1.1"
+  }
+}
