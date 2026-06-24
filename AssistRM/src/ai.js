@@ -77,7 +77,7 @@ ${trimText(pdfText)}
 
   const res = await groq.chat.completions.create({
     model: MODEL,
-    temperature: 0.1,
+    temperature: 0.2,
     messages,
   });
 
