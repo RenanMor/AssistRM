@@ -30,6 +30,12 @@ function getDrive() {
     } catch (err) {
       throw new Error(`Erro ao fazer parse das credenciais: ${err.message}`);
     }
+    console.log("CLIENT EMAIL:", credentials.client_email);
+console.log("PROJECT ID:", credentials.project_id);
+console.log(
+  "PRIVATE KEY START:",
+  credentials.private_key?.substring(0, 40)
+);
 
     const auth = new google.auth.GoogleAuth({
       credentials,
