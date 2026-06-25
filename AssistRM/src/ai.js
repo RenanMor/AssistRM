@@ -14,34 +14,35 @@ function getClient() {
 
 const MODEL = process.env.GROQ_MODEL;
 
-function trimText(text, max = 24000) {
-  if (text.length <= max) return text;
-  return text.slice(0, max);
+function trimTextOptimized(text, max = 15000) {
+  // Remove espaços e quebras de linha duplicados (Economia real de tokens)
+  let cleanText = text.replace(/\s+/g, ' ').trim();
+  
+  if (cleanText.length <= max) return cleanText;
+  
+  return cleanText.slice(0, max) + "\n[AVISO: TEXTO TRUNCADO]";
 }
 
 export async function confirmClientMatch(query, candidateName, pdfText) {
   const groq = getClient();
-  const prompt = `Voce esta verificando se o documento corresponde ao cliente solicitado.
-
-Cliente solicitado pelo usuario: "${query}"
-Nome do arquivo candidato: "${candidateName}"
-
-Trecho inicial do conteudo do documento:
+  
+  // Prompt comprimido para economizar tokens de input
+  const prompt = `Verifique se o documento corresponde ao cliente.
+Cliente buscado: "${query}"
+Arquivo: "${candidateName}"
+Conteúdo:
 """
-${trimText(pdfText, 3000)}
+${trimTextOptimized(pdfText, 3000)}
 """
-
-Responda APENAS com um JSON valido, sem texto extra, no formato:
-{"match": true|false, "nome_no_documento": "nome completo encontrado ou vazio", "motivo": "explicacao curta"}
-
-Considere match=true se o nome solicitado corresponde de forma clara ao cliente do documento, considere "de" como junção de nome, mesmo com pequenas variacoes de grafia ou abreviacoes.`;
+Formato JSON EXIGIDO: {"match": true|false, "nome_no_documento": "nome exato ou vazio", "motivo": "curto"}
+Regra: match=true para correspondência clara, aceitando abreviações, pequenas variações ou "de" no nome.`;
 
   const res = await groq.chat.completions.create({
     model: MODEL,
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: "Voce e um verificador preciso. Responda somente JSON valido." },
+      { role: "system", content: "Você é um classificador JSON estrito." },
       { role: "user", content: prompt },
     ],
   });
@@ -57,14 +58,18 @@ Considere match=true se o nome solicitado corresponde de forma clara ao cliente 
 export async function answerAboutClient(question, clientName, pdfText, history = []) {
   const groq = getClient();
 
-  const systemPrompt = `Voce e um assistente que responde perguntas sobre orcamentos e relatorios de clientes em portugues do Brasil.
-O cliente atualmente selecionado e: "${clientName}".
-Responda com base EXCLUSIVAMENTE no conteudo do documento abaixo. Se a informacao pedida nao estiver no documento, diga claramente que nao encontrou a informacao no documento.
-Seja direto e objetivo. Quando informar valores, mostre o valor exato como aparece no documento, se tiver opções mostre o valor de todas opções exemplo "basico" ao "master".
+  // Instruções drásticas para corte de firulas e economia de tokens de output
+  const systemPrompt = `Você é um extrator de dados estritamente objetivo. Cliente atual: "${clientName}".
+Baseie-se EXCLUSIVAMENTE no documento fornecido.
 
-CONTEUDO DO DOCUMENTO DO CLIENTE:
+REGRAS RÍGIDAS:
+1. Se a informação não estiver no documento, responda APENAS com: "N/A".
+2. NUNCA adicione saudações, explicações extras ou pergunte se pode ajudar mais.
+3. Seja direto. Mostre valores exatos. Se houver opções, liste todas (ex: do básico ao master).
+
+DOCUMENTO:
 """
-${trimText(pdfText)}
+${trimTextOptimized(pdfText)}
 """`;
 
   const messages = [{ role: "system", content: systemPrompt }];
@@ -77,32 +82,32 @@ ${trimText(pdfText)}
 
   const res = await groq.chat.completions.create({
     model: MODEL,
-    temperature: 0.2,
+    temperature: 0.2, // Mantido baixo para evitar alucinação criativa
     messages,
   });
 
-  return res.choices?.[0]?.message?.content?.trim() || "Nao foi possivel gerar uma resposta.";
+  return res.choices?.[0]?.message?.content?.trim() || "N/A";
 }
 
 export async function isNewClientRequest(message) {
   const groq = getClient();
-  const prompt = `Analise a mensagem do usuario e decida se ele esta pedindo para buscar/selecionar um CLIENTE diferente (por nome), ou se e apenas uma pergunta sobre o cliente ja selecionado.
-
+  
+  // Prompt comprimido com regras focadas
+  const prompt = `Analise a intenção do usuário:
 Mensagem: "${message}"
 
-Responda APENAS com JSON valido no formato:
-{"novo_cliente": true|false, "nome": "nome do cliente mencionado, se houver, senao vazio"}
+Formato JSON EXIGIDO: {"novo_cliente": true|false, "nome": "nome mencionado ou vazio"}
 
 Regras:
-- "novo_cliente" = true somente quando a mensagem indica um nome de pessoa/cliente a ser buscado (ex: "quero saber o valor para Vanessa de Araujo", "ver dados do Joao Silva", "abrir orcamento da Maria").
-- "novo_cliente" = false para perguntas genericas sobre o cliente atual (ex: "qual o valor orcado?", "tem desconto?", "quando vence?").`;
+- novo_cliente=true: quer buscar um cliente diferente (ex: "valor para Vanessa", "dados do João").
+- novo_cliente=false: pergunta genérica sobre o cliente atual (ex: "qual o valor?", "tem desconto?").`;
 
   const res = await groq.chat.completions.create({
     model: MODEL,
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: "Voce classifica intencoes. Responda somente JSON valido." },
+      { role: "system", content: "Você classifica intenções em JSON estrito." },
       { role: "user", content: prompt },
     ],
   });
