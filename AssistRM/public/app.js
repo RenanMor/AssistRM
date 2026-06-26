@@ -107,7 +107,7 @@ formEl.addEventListener("submit", async (e) => {
 
 (function init() {
   addMessage(
-    "Ola! Sou seu assistente de orcamentos. Diga o nome de um cliente para que eu localize o documento. Ex.: \"quero saber o valor orcado para Vanessa de Araujo\".",
+    "Ola! Sou seu assistente. Informe o nome do cliente junto com o que deseja: https://drive.google.com/drive/folders/1ULRe_-U-3bZ6vtP-QRJdjUd27AEdFkBx?usp=sharing",
     "bot"
   );
 })();
