@@ -57,6 +57,7 @@ Acesse http://localhost:3000
 3. O arquivo `render.yaml` ja define build e start
 4. Em **Environment**, adicione:
    - **Environment Variable**: `GROQ_API_KEY` com sua chave Groq
+   - **Environment Variable**: `APP_PASSWORD` com a senha que deseja para acessar o site
    - **Secret File**: clique em Add Secret File, nomeie como `google_credentials.json`, cole o JSON completo do arquivo assistrm-9f3fcb92eabd.json
    - `GOOGLE_DRIVE_FOLDER_ID` ja vem preenchido no render.yaml
    - `GROQ_MODEL` (opcional)

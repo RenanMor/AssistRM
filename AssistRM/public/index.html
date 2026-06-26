@@ -7,6 +7,16 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="auth-overlay" class="auth-overlay hidden">
+    <div class="auth-card">
+      <h2>Acesso Restrito</h2>
+      <p>Digite a senha para continuar</p>
+      <input type="password" id="auth-password" placeholder="Senha" />
+      <button id="auth-submit">Entrar</button>
+      <p id="auth-error" class="error-msg hidden">Senha incorreta</p>
+    </div>
+  </div>
+
   <div id="app">
     <section id="chat-pane">
       <header id="chat-header">

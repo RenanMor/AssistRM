@@ -11,8 +11,14 @@ const viewerFilename = document.getElementById("viewer-filename");
 const viewerOpen = document.getElementById("viewer-open");
 const pdfFrame = document.getElementById("pdf-frame");
 
+const authOverlay = document.getElementById("auth-overlay");
+const authPassword = document.getElementById("auth-password");
+const authSubmit = document.getElementById("auth-submit");
+const authError = document.getElementById("auth-error");
+
 let currentClient = null;
 const history = [];
+let appPassword = localStorage.getItem("app_password") || "";
 
 function addMessage(text, role) {
   const div = document.createElement("div");
@@ -59,6 +65,53 @@ function hidePdf() {
   viewerEmpty.classList.remove("hidden");
 }
 
+async function apiFetch(url, options = {}) {
+  options.headers = {
+    ...options.headers,
+    "x-app-password": appPassword,
+  };
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    showAuth();
+    throw new Error("Unauthorized");
+  }
+  return res;
+}
+
+function showAuth() {
+  authOverlay.classList.remove("hidden");
+  authPassword.focus();
+}
+
+authSubmit.addEventListener("click", async () => {
+  const pwd = authPassword.value;
+  if (!pwd) return;
+  
+  appPassword = pwd;
+  try {
+    const res = await fetch("/api/health", {
+      headers: { "x-app-password": appPassword }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("app_password", appPassword);
+      authOverlay.classList.add("hidden");
+      authError.classList.add("hidden");
+      if (!messagesEl.querySelector(".msg")) {
+        initWelcome();
+      }
+    } else {
+      authError.classList.remove("hidden");
+    }
+  } catch (e) {
+    authError.classList.remove("hidden");
+  }
+});
+
+authPassword.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") authSubmit.click();
+});
+
 clearClientBtn.addEventListener("click", () => {
   setClient(null);
   addMessage("Cliente atual removido. Informe o nome de um novo cliente para comecar.", "system");
@@ -78,7 +131,7 @@ formEl.addEventListener("submit", async (e) => {
   const typing = showTyping();
 
   try {
-    const res = await fetch("/api/chat", {
+    const res = await apiFetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, currentClient, history }),
@@ -96,8 +149,10 @@ formEl.addEventListener("submit", async (e) => {
       history.push({ role: "assistant", content: data.reply });
     }
   } catch (err) {
-    typing.remove();
-    addMessage(`Erro de conexao: ${err.message}`, "bot");
+    if (err.message !== "Unauthorized") {
+      typing.remove();
+      addMessage(`Erro de conexao: ${err.message}`, "bot");
+    }
   } finally {
     inputEl.disabled = false;
     sendBtn.disabled = false;
@@ -105,9 +160,32 @@ formEl.addEventListener("submit", async (e) => {
   }
 });
 
-(function init() {
+function initWelcome() {
   addMessage(
-    "Ola! Sou seu assistente. Informe o nome do cliente junto com o que deseja: https://drive.google.com/drive/folders/1ULRe_-U-3bZ6vtP-QRJdjUd27AEdFkBx?usp=sharing",
+    "Ola! Sou seu assistente de orcamentos. Diga o nome de um cliente para que eu localize o documento. Ex.: \"quero saber o valor orcado para Vanessa de Araujo\".",
     "bot"
   );
-})();
+}
+
+async function checkAuth() {
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+    if (data.auth) {
+      const test = await fetch("/api/health", {
+        headers: { "x-app-password": appPassword }
+      });
+      if (test.status === 401) {
+        showAuth();
+      } else {
+        initWelcome();
+      }
+    } else {
+      initWelcome();
+    }
+  } catch (e) {
+    initWelcome();
+  }
+}
+
+checkAuth();

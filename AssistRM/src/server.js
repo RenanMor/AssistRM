@@ -14,19 +14,27 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "..", "public")));
+
+const authMiddleware = (req, res, next) => {
+  const password = process.env.APP_PASSWORD;
+  if (!password) return next();
+  const authHeader = req.headers["x-app-password"];
+  if (authHeader === password) return next();
+  res.status(401).json({ error: "Unauthorized" });
+};
 
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
     groq: Boolean(process.env.GROQ_API_KEY),
-    drive: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS),
+    drive: Boolean(process.env.GOOGLE_CREDENTIALS || process.env.GOOGLE_CREDENTIALS_FILE),
     folder: Boolean(process.env.GOOGLE_DRIVE_FOLDER_ID),
+    auth: Boolean(process.env.APP_PASSWORD),
     model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
   });
 });
 
-app.get("/api/files", async (req, res) => {
+app.get("/api/files", authMiddleware, async (req, res) => {
   try {
     const files = await listPdfFiles();
     res.json({ files });
@@ -35,7 +43,7 @@ app.get("/api/files", async (req, res) => {
   }
 });
 
-app.get("/api/pdf/:fileId", async (req, res) => {
+app.get("/api/pdf/:fileId", authMiddleware, async (req, res) => {
   try {
     const buffer = await getPdfBuffer(req.params.fileId);
     res.setHeader("Content-Type", "application/pdf");
@@ -48,19 +56,11 @@ app.get("/api/pdf/:fileId", async (req, res) => {
 
 async function selectClient(query) {
   const files = await listPdfFiles();
-  if (files.length === 0) {
-    return { status: "empty" };
-  }
-
+  if (files.length === 0) return { status: "empty" };
   const name = extractNameFromQuery(query) || query;
   const candidates = findCandidates(name, files);
-
-  if (candidates.length === 0) {
-    return { status: "not_found", name };
-  }
-
+  if (candidates.length === 0) return { status: "not_found", name };
   const topCandidates = candidates.slice(0, 5);
-
   for (const cand of topCandidates) {
     const text = await extractPdfText(cand.file.id);
     const verdict = await confirmClientMatch(query, cand.file.name, text);
@@ -76,7 +76,6 @@ async function selectClient(query) {
       };
     }
   }
-
   return {
     status: "ambiguous",
     name,
@@ -84,16 +83,12 @@ async function selectClient(query) {
   };
 }
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", authMiddleware, async (req, res) => {
   try {
     const { message, currentClient, history = [] } = req.body || {};
-    if (!message || !message.trim()) {
-      return res.status(400).json({ error: "Mensagem vazia." });
-    }
-
+    if (!message || !message.trim()) return res.status(400).json({ error: "Mensagem vazia." });
     let mustSearch = !currentClient;
     let searchName = message;
-
     if (currentClient) {
       const intent = await isNewClientRequest(message);
       if (intent.novo_cliente) {
@@ -101,41 +96,24 @@ app.post("/api/chat", async (req, res) => {
         searchName = intent.nome || message;
       }
     }
-
     if (mustSearch) {
       const result = await selectClient(searchName);
-
       if (result.status === "empty") {
-        return res.json({
-          reply: "Nao encontrei nenhum arquivo PDF na pasta do Google Drive configurada.",
-          client: currentClient || null,
-        });
+        return res.json({ reply: "Nao encontrei arquivos no Drive.", client: currentClient || null });
       }
-
       if (result.status === "not_found") {
-        return res.json({
-          reply: `Nao encontrei nenhum cliente correspondente a "${result.name}" na pasta. Verifique o nome e tente novamente.`,
-          client: currentClient || null,
-        });
+        return res.json({ reply: `Nao encontrei "${result.name}".`, client: currentClient || null });
       }
-
       if (result.status === "ambiguous") {
         const list = result.options.map((o) => `- ${o.fileName}`).join("\n");
         return res.json({
-          reply: `Encontrei mais de um documento possivel para "${result.name}", mas nao consegui confirmar qual e o cliente certo:\n${list}\nPoderia informar o nome completo do cliente?`,
+          reply: `Multiplos documentos para "${result.name}":\n${list}\nQual o nome completo?`,
           client: currentClient || null,
-          options: result.options,
         });
       }
-
       const answer = await answerAboutClient(message, result.client.displayName, result.text, history);
-      return res.json({
-        reply: answer,
-        client: result.client,
-        clientChanged: true,
-      });
+      return res.json({ reply: answer, client: result.client, clientChanged: true });
     }
-
     const text = await extractPdfText(currentClient.id);
     const answer = await answerAboutClient(message, currentClient.displayName, text, history);
     return res.json({ reply: answer, client: currentClient });
@@ -144,16 +122,14 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-app.post("/api/select", async (req, res) => {
+app.post("/api/select", authMiddleware, async (req, res) => {
   try {
     const { fileId } = req.body || {};
     if (!fileId) return res.status(400).json({ error: "fileId obrigatorio." });
-
     const text = await extractPdfText(fileId);
     const files = await listPdfFiles();
     const meta = files.find((f) => f.id === fileId);
     const verdict = await confirmClientMatch(meta?.name || "", meta?.name || "", text);
-
     res.json({
       client: {
         id: fileId,
@@ -166,6 +142,7 @@ app.post("/api/select", async (req, res) => {
   }
 });
 
+app.use(express.static(path.join(__dirname, "..", "public")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
