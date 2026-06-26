@@ -12,21 +12,16 @@ function getClient() {
   return client;
 }
 
-const MODEL = process.env.GROQ_MODEL;
+const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
 function trimTextOptimized(text, max = 15000) {
-  // Remove espaços e quebras de linha duplicados (Economia real de tokens)
   let cleanText = text.replace(/\s+/g, ' ').trim();
-  
   if (cleanText.length <= max) return cleanText;
-  
   return cleanText.slice(0, max) + "\n[AVISO: TEXTO TRUNCADO]";
 }
 
 export async function confirmClientMatch(query, candidateName, pdfText) {
   const groq = getClient();
-  
-  // Prompt comprimido para economizar tokens de input
   const prompt = `Verifique se o documento corresponde ao cliente.
 Cliente buscado: "${query}"
 Arquivo: "${candidateName}"
@@ -57,8 +52,6 @@ Regra: match=true para correspondência clara, aceitando abreviações, pequenas
 
 export async function answerAboutClient(question, clientName, pdfText, history = []) {
   const groq = getClient();
-
-  // Instruções drásticas para corte de firulas e economia de tokens de output
   const systemPrompt = `Você é um extrator de dados estritamente objetivo. Cliente atual: "${clientName}".
 Baseie-se EXCLUSIVAMENTE no documento fornecido.
 
@@ -82,7 +75,7 @@ ${trimTextOptimized(pdfText)}
 
   const res = await groq.chat.completions.create({
     model: MODEL,
-    temperature: 0.2, // Mantido baixo para evitar alucinação criativa
+    temperature: 0.2,
     messages,
   });
 
@@ -91,8 +84,6 @@ ${trimTextOptimized(pdfText)}
 
 export async function isNewClientRequest(message) {
   const groq = getClient();
-  
-  // Prompt comprimido com regras focadas
   const prompt = `Analise a intenção do usuário:
 Mensagem: "${message}"
 
